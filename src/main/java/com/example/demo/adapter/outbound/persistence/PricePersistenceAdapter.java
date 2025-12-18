@@ -5,13 +5,11 @@ import com.example.demo.domain.model.Price;
 import com.example.demo.domain.repository.PriceRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 
 import static lombok.AccessLevel.PRIVATE;
 
-@Component
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
 public class PricePersistenceAdapter implements PriceRepository {
