@@ -15,8 +15,9 @@ public record Money(
     }
   }
 
+  @SuppressWarnings("NullableProblems")
   @Override
   public String toString() {
-    return amount + " " + currency.name();
+    return amount.toPlainString() + " " + currency.name();
   }
 }

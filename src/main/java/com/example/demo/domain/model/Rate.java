@@ -18,19 +18,4 @@ public record Rate(
     }
   }
 
-  public boolean isDateIncluded(LocalDateTime date) {
-    return isAfterOrEqualStartDate(date)
-        && isBeforeOrEqualEndDate(date);
-  }
-
-  private boolean isAfterOrEqualStartDate(LocalDateTime date) {
-    return startDate.isBefore(date)
-        || startDate.isEqual(date);
-  }
-
-  private boolean isBeforeOrEqualEndDate(LocalDateTime date) {
-    return endDate.isAfter(date)
-        || endDate.isEqual(date);
-  }
-
 }
