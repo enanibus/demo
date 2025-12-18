@@ -62,7 +62,7 @@ class PriceMapperTest {
         BrandsEntity brand = BrandsEntity.builder().id(1).chainName("ZARA").build();
         ProductsEntity product = ProductsEntity.builder().id(35455).productName("Product").build();
 
-        PricesEntity entityEUR = createPricesEntity(brand, product, "EUR");
+        PricesEntity entityEUR = createPricesEntity(brand, product);
 
         // When & Then
         assertThat(PriceMapper.toDomain(entityEUR).rate().price().currency()).isEqualTo(Currency.EUR);
@@ -116,7 +116,7 @@ class PriceMapperTest {
         assertThat(dto.finalPrice()).isEqualTo("25.45 EUR");
     }
 
-    private PricesEntity createPricesEntity(BrandsEntity brand, ProductsEntity product, String currency) {
+    private PricesEntity createPricesEntity(BrandsEntity brand, ProductsEntity product) {
         return PricesEntity.builder()
                 .priceList(1)
                 .brand(brand)
@@ -125,7 +125,7 @@ class PriceMapperTest {
                 .endDate(LocalDateTime.of(2020, 12, 31, 23, 59, 59))
                 .priority(0)
                 .price(new BigDecimal("35.50"))
-                .currency(currency)
+                .currency("EUR")
                 .build();
     }
 }
