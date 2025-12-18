@@ -24,21 +24,21 @@ import static lombok.AccessLevel.PRIVATE;
 @RestController
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
-@Tag(name = "Prices", description = "API para consulta de precios")
+@Tag(name = "Prices", description = "API for price queries")
 public class PriceController {
 
   PriorityPriceUseCase priorityPriceUseCase;
 
-  @Operation(summary = "Obtener precio prioritario", description = "Obtiene el precio aplicable para un producto y marca en una fecha determinada")
+  @Operation(summary = "Get priority price", description = "Gets the applicable price for a product and brand on a given date")
   @ApiResponses(value = {
-      @ApiResponse(responseCode = "200", description = "Precio encontrado"),
-      @ApiResponse(responseCode = "404", description = "Precio no encontrado")
+      @ApiResponse(responseCode = "200", description = "Price found"),
+      @ApiResponse(responseCode = "404", description = "Price not found")
   })
   @GetMapping("/brand/{brandId}/product/{productId}/prices")
   public ResponseEntity<PriceResponseDTO> getPriorityPrice(
-      @Parameter(description = "ID de la marca") @PathVariable Integer brandId,
-      @Parameter(description = "ID del producto") @PathVariable Integer productId,
-      @Parameter(description = "Fecha de aplicación (formato: yyyy-MM-ddTHH:mm:ss)") @RequestParam LocalDateTime applicationDate) {
+      @Parameter(description = "Brand ID") @PathVariable Integer brandId,
+      @Parameter(description = "Product ID") @PathVariable Integer productId,
+      @Parameter(description = "Application date (format: yyyy-MM-ddTHH:mm:ss)") @RequestParam LocalDateTime applicationDate) {
 
     var request = PriceRequestDTO.builder()
         .applicationDate(applicationDate)
