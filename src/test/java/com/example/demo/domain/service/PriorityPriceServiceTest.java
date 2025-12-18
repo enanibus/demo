@@ -17,6 +17,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -37,7 +39,8 @@ class PriorityPriceServiceTest {
     private static final LocalDateTime APPLICATION_DATE = LocalDateTime.of(2020, 6, 14, 10, 0, 0);
 
     private PriceRequestDTO request;
-    private Price expectedPrice;
+    private Price lowPriorityPrice;
+    private Price highPriorityPrice;
 
     @BeforeEach
     void setUp() {
@@ -47,23 +50,33 @@ class PriorityPriceServiceTest {
                 .applicationDate(APPLICATION_DATE)
                 .build();
 
-        Money money = new Money(new BigDecimal("35.50"), Currency.EUR);
-        Rate rate = new Rate(
+        Money lowPriorityMoney = new Money(new BigDecimal("35.50"), Currency.EUR);
+        Rate lowPriorityRate = new Rate(
                 1,
                 LocalDateTime.of(2020, 6, 14, 0, 0, 0),
                 LocalDateTime.of(2020, 12, 31, 23, 59, 59),
                 0,
-                money
+                lowPriorityMoney
         );
-        expectedPrice = new Price(BRAND_ID, PRODUCT_ID, rate);
+        lowPriorityPrice = new Price(BRAND_ID, PRODUCT_ID, lowPriorityRate);
+
+        Money highPriorityMoney = new Money(new BigDecimal("25.45"), Currency.EUR);
+        Rate highPriorityRate = new Rate(
+                2,
+                LocalDateTime.of(2020, 6, 14, 15, 0, 0),
+                LocalDateTime.of(2020, 6, 14, 18, 30, 0),
+                1,
+                highPriorityMoney
+        );
+        highPriorityPrice = new Price(BRAND_ID, PRODUCT_ID, highPriorityRate);
     }
 
     @Test
-    @DisplayName("getPriorityPrice - Should return price when found")
-    void getPriorityPrice_ShouldReturnPrice_WhenPriceExists() {
+    @DisplayName("getPriorityPrice - Should return price when single price found")
+    void getPriorityPrice_ShouldReturnPrice_WhenSinglePriceExists() {
         // Given
-        when(priceRepository.findPriceByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE))
-                .thenReturn(expectedPrice);
+        when(priceRepository.findPricesByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE))
+                .thenReturn(List.of(lowPriorityPrice));
 
         // When
         Price result = priorityPriceService.getPriorityPrice(request);
@@ -76,17 +89,15 @@ class PriorityPriceServiceTest {
         assertThat(result.rate().price().amount()).isEqualByComparingTo(new BigDecimal("35.50"));
         assertThat(result.rate().price().currency()).isEqualTo(Currency.EUR);
 
-        verify(priceRepository).findPriceByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
+        verify(priceRepository).findPricesByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
     }
 
     @Test
-    @DisplayName("getPriorityPrice - Should throw ResourceNotFoundException when price not found")
-    void getPriorityPrice_ShouldThrowException_WhenPriceNotFound() {
+    @DisplayName("getPriorityPrice - Should throw ResourceNotFoundException when no prices found")
+    void getPriorityPrice_ShouldThrowException_WhenNoPricesFound() {
         // Given
-        when(priceRepository.findPriceByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE))
-                .thenThrow(new ResourceNotFoundException(
-                        String.format("Price not found for brandId=%d, productId=%d, applicationDate=%s",
-                                BRAND_ID, PRODUCT_ID, APPLICATION_DATE)));
+        when(priceRepository.findPricesByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE))
+                .thenReturn(Collections.emptyList());
 
         // When & Then
         assertThatThrownBy(() -> priorityPriceService.getPriorityPrice(request))
@@ -95,63 +106,63 @@ class PriorityPriceServiceTest {
                 .hasMessageContaining(BRAND_ID.toString())
                 .hasMessageContaining(PRODUCT_ID.toString());
 
-        verify(priceRepository).findPriceByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
+        verify(priceRepository).findPricesByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
     }
 
     @Test
     @DisplayName("getPriorityPrice - Should call repository with correct parameters")
     void getPriorityPrice_ShouldCallRepositoryWithCorrectParameters() {
         // Given
-        when(priceRepository.findPriceByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE))
-                .thenReturn(expectedPrice);
+        when(priceRepository.findPricesByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE))
+                .thenReturn(List.of(lowPriorityPrice));
 
         // When
         priorityPriceService.getPriorityPrice(request);
 
         // Then
-        verify(priceRepository).findPriceByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
+        verify(priceRepository).findPricesByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
     }
 
     @Test
-    @DisplayName("getPriorityPrice - Should return price with higher priority rate")
-    void getPriorityPrice_ShouldReturnPriceWithHigherPriority() {
+    @DisplayName("getPriorityPrice - Should select highest priority when multiple prices exist")
+    void getPriorityPrice_ShouldSelectHighestPriority_WhenMultiplePricesExist() {
         // Given
-        LocalDateTime dateWithMultiplePrices = LocalDateTime.of(2020, 6, 14, 16, 0, 0);
-        PriceRequestDTO requestWithMultiplePrices = PriceRequestDTO.builder()
-                .brandId(BRAND_ID)
-                .productId(PRODUCT_ID)
-                .applicationDate(dateWithMultiplePrices)
-                .build();
-
-        Money money = new Money(new BigDecimal("25.45"), Currency.EUR);
-        Rate highPriorityRate = new Rate(
-                2,
-                LocalDateTime.of(2020, 6, 14, 15, 0, 0),
-                LocalDateTime.of(2020, 6, 14, 18, 30, 0),
-                1,
-                money
-        );
-        Price highPriorityPrice = new Price(BRAND_ID, PRODUCT_ID, highPriorityRate);
-
-        when(priceRepository.findPriceByBrandProductDate(BRAND_ID, PRODUCT_ID, dateWithMultiplePrices))
-                .thenReturn(highPriorityPrice);
+        when(priceRepository.findPricesByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE))
+                .thenReturn(List.of(lowPriorityPrice, highPriorityPrice));
 
         // When
-        Price result = priorityPriceService.getPriorityPrice(requestWithMultiplePrices);
+        Price result = priorityPriceService.getPriorityPrice(request);
 
         // Then
         assertThat(result).isNotNull();
         assertThat(result.rate().priceList()).isEqualTo(2);
         assertThat(result.rate().priority()).isEqualTo(1);
         assertThat(result.rate().price().amount()).isEqualByComparingTo(new BigDecimal("25.45"));
+
+        verify(priceRepository).findPricesByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
+    }
+
+    @Test
+    @DisplayName("getPriorityPrice - Should select highest priority regardless of list order")
+    void getPriorityPrice_ShouldSelectHighestPriority_RegardlessOfListOrder() {
+        // Given - high priority price comes first in the list
+        when(priceRepository.findPricesByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE))
+                .thenReturn(List.of(highPriorityPrice, lowPriorityPrice));
+
+        // When
+        Price result = priorityPriceService.getPriorityPrice(request);
+
+        // Then
+        assertThat(result.rate().priceList()).isEqualTo(2);
+        assertThat(result.rate().priority()).isEqualTo(1);
     }
 
     @Test
     @DisplayName("getPriorityPrice - Should return price with correct date range")
     void getPriorityPrice_ShouldReturnPriceWithCorrectDateRange() {
         // Given
-        when(priceRepository.findPriceByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE))
-                .thenReturn(expectedPrice);
+        when(priceRepository.findPricesByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE))
+                .thenReturn(List.of(lowPriorityPrice));
 
         // When
         Price result = priorityPriceService.getPriorityPrice(request);

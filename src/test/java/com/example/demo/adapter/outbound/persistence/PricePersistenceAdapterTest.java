@@ -1,6 +1,5 @@
 package com.example.demo.adapter.outbound.persistence;
 
-import com.example.demo.domain.exception.ResourceNotFoundException;
 import com.example.demo.domain.model.Price;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -11,10 +10,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Optional;
+import java.util.Collections;
+import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,78 +35,81 @@ class PricePersistenceAdapterTest {
     }
 
     @Test
-    @DisplayName("findPriceByBrandProductDate - Should return Price when found")
-    void findPriceByBrandProductDate_ShouldReturnPrice_WhenFound() {
+    @DisplayName("findPricesByBrandProductDate - Should return list of Prices when found")
+    void findPricesByBrandProductDate_ShouldReturnPrices_WhenFound() {
         // Given
-        PricesEntity entity = createPricesEntity();
+        PricesEntity entity = createPricesEntity(1, 0, new BigDecimal("35.50"));
         when(jpaPriceRepository.findPricesByBrandAndProductAndApplicationDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE))
-                .thenReturn(Optional.of(entity));
+                .thenReturn(List.of(entity));
 
         // When
-        Price result = pricePersistenceAdapter.findPriceByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
+        List<Price> result = pricePersistenceAdapter.findPricesByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
 
         // Then
-        assertThat(result).isNotNull();
-        assertThat(result.brandId()).isEqualTo(BRAND_ID);
-        assertThat(result.productId()).isEqualTo(PRODUCT_ID);
-        assertThat(result.rate().priceList()).isEqualTo(1);
-        assertThat(result.rate().price().amount()).isEqualByComparingTo(new BigDecimal("35.50"));
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).brandId()).isEqualTo(BRAND_ID);
+        assertThat(result.get(0).productId()).isEqualTo(PRODUCT_ID);
+        assertThat(result.get(0).rate().priceList()).isEqualTo(1);
+        assertThat(result.get(0).rate().price().amount()).isEqualByComparingTo(new BigDecimal("35.50"));
 
         verify(jpaPriceRepository).findPricesByBrandAndProductAndApplicationDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
     }
 
     @Test
-    @DisplayName("findPriceByBrandProductDate - Should throw ResourceNotFoundException when not found")
-    void findPriceByBrandProductDate_ShouldThrowException_WhenNotFound() {
+    @DisplayName("findPricesByBrandProductDate - Should return empty list when not found")
+    void findPricesByBrandProductDate_ShouldReturnEmptyList_WhenNotFound() {
         // Given
         when(jpaPriceRepository.findPricesByBrandAndProductAndApplicationDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE))
-                .thenReturn(Optional.empty());
+                .thenReturn(Collections.emptyList());
 
-        // When & Then
-        assertThatThrownBy(() -> pricePersistenceAdapter.findPriceByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE))
-                .isInstanceOf(ResourceNotFoundException.class)
-                .hasMessageContaining("Price not found")
-                .hasMessageContaining(BRAND_ID.toString())
-                .hasMessageContaining(PRODUCT_ID.toString())
-                .hasMessageContaining(APPLICATION_DATE.toString());
+        // When
+        List<Price> result = pricePersistenceAdapter.findPricesByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
+
+        // Then
+        assertThat(result).isEmpty();
 
         verify(jpaPriceRepository).findPricesByBrandAndProductAndApplicationDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
     }
 
     @Test
-    @DisplayName("findPriceByBrandProductDate - Should call repository with correct parameters")
-    void findPriceByBrandProductDate_ShouldCallRepositoryWithCorrectParameters() {
+    @DisplayName("findPricesByBrandProductDate - Should return multiple prices when overlapping date ranges")
+    void findPricesByBrandProductDate_ShouldReturnMultiplePrices_WhenOverlappingDateRanges() {
         // Given
-        PricesEntity entity = createPricesEntity();
+        PricesEntity entity1 = createPricesEntity(1, 0, new BigDecimal("35.50"));
+        PricesEntity entity2 = createPricesEntity(2, 1, new BigDecimal("25.45"));
         when(jpaPriceRepository.findPricesByBrandAndProductAndApplicationDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE))
-                .thenReturn(Optional.of(entity));
+                .thenReturn(List.of(entity1, entity2));
 
         // When
-        pricePersistenceAdapter.findPriceByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
+        List<Price> result = pricePersistenceAdapter.findPricesByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
 
         // Then
-        verify(jpaPriceRepository).findPricesByBrandAndProductAndApplicationDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
+        assertThat(result).hasSize(2);
+        assertThat(result).extracting(price -> price.rate().priceList()).containsExactlyInAnyOrder(1, 2);
+        assertThat(result).extracting(price -> price.rate().priority()).containsExactlyInAnyOrder(0, 1);
     }
 
     @Test
-    @DisplayName("findPriceByBrandProductDate - Should map entity to domain correctly")
-    void findPriceByBrandProductDate_ShouldMapEntityToDomainCorrectly() {
+    @DisplayName("findPricesByBrandProductDate - Should map all entities to domain correctly")
+    void findPricesByBrandProductDate_ShouldMapEntitiesToDomainCorrectly() {
         // Given
-        PricesEntity entity = createPricesEntity();
+        PricesEntity entity = createPricesEntity(1, 0, new BigDecimal("35.50"));
         when(jpaPriceRepository.findPricesByBrandAndProductAndApplicationDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE))
-                .thenReturn(Optional.of(entity));
+                .thenReturn(List.of(entity));
 
         // When
-        Price result = pricePersistenceAdapter.findPriceByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
+        List<Price> result = pricePersistenceAdapter.findPricesByBrandProductDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
 
         // Then
-        assertThat(result.rate().startDate()).isEqualTo(LocalDateTime.of(2020, 6, 14, 0, 0, 0));
-        assertThat(result.rate().endDate()).isEqualTo(LocalDateTime.of(2020, 12, 31, 23, 59, 59));
-        assertThat(result.rate().priority()).isEqualTo(0);
-        assertThat(result.rate().price().currency().name()).isEqualTo("EUR");
+        assertThat(result).hasSize(1);
+        Price price = result.get(0);
+        assertThat(price.rate().startDate()).isEqualTo(LocalDateTime.of(2020, 6, 14, 0, 0, 0));
+        assertThat(price.rate().endDate()).isEqualTo(LocalDateTime.of(2020, 12, 31, 23, 59, 59));
+        assertThat(price.rate().priority()).isEqualTo(0);
+        assertThat(price.rate().price().currency().name()).isEqualTo("EUR");
     }
 
-    private PricesEntity createPricesEntity() {
+    private PricesEntity createPricesEntity(Integer priceList, Integer priority, BigDecimal price) {
         BrandsEntity brand = BrandsEntity.builder()
                 .id(BRAND_ID)
                 .chainName("ZARA")
@@ -119,13 +121,13 @@ class PricePersistenceAdapterTest {
                 .build();
 
         return PricesEntity.builder()
-                .priceList(1)
+                .priceList(priceList)
                 .brand(brand)
                 .productsEntity(product)
                 .startDate(LocalDateTime.of(2020, 6, 14, 0, 0, 0))
                 .endDate(LocalDateTime.of(2020, 12, 31, 23, 59, 59))
-                .priority(0)
-                .price(new BigDecimal("35.50"))
+                .priority(priority)
+                .price(price)
                 .currency("EUR")
                 .build();
     }
