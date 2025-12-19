@@ -102,7 +102,7 @@ class PricePersistenceAdapterTest {
 
         // Then
         assertThat(result).hasSize(1);
-        Price price = result.get(0);
+        Price price = result.getFirst();
         assertThat(price.rate().startDate()).isEqualTo(LocalDateTime.of(2020, 6, 14, 0, 0, 0));
         assertThat(price.rate().endDate()).isEqualTo(LocalDateTime.of(2020, 12, 31, 23, 59, 59));
         assertThat(price.rate().priority()).isEqualTo(0);
