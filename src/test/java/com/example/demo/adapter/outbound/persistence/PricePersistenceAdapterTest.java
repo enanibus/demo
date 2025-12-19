@@ -47,10 +47,10 @@ class PricePersistenceAdapterTest {
 
         // Then
         assertThat(result).hasSize(1);
-        assertThat(result.get(0).brandId()).isEqualTo(BRAND_ID);
-        assertThat(result.get(0).productId()).isEqualTo(PRODUCT_ID);
-        assertThat(result.get(0).rate().priceList()).isEqualTo(1);
-        assertThat(result.get(0).rate().price().amount()).isEqualByComparingTo(new BigDecimal("35.50"));
+        assertThat(result.getFirst().brandId()).isEqualTo(BRAND_ID);
+        assertThat(result.getFirst().productId()).isEqualTo(PRODUCT_ID);
+        assertThat(result.getFirst().rate().priceList()).isEqualTo(1);
+        assertThat(result.getFirst().rate().price().amount()).isEqualByComparingTo(new BigDecimal("35.50"));
 
         verify(jpaPriceRepository).findPricesByBrandAndProductAndApplicationDate(BRAND_ID, PRODUCT_ID, APPLICATION_DATE);
     }
