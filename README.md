@@ -6,11 +6,57 @@ This project is a Spring Boot application that provides a price search service b
 
 ### Build and Configuration
 
-- **Requirements**: Java 21 and Maven.
+- **Requirements**: Java 21 and Maven (or Docker for containerized execution).
 - **Build**: Run `./mvnw clean install` to build the project and run all tests.
 - **Run**: Execute `./mvnw spring-boot:run` to start the application.
 - **Database**: The project uses an in-memory H2 database. It is automatically initialized using `src/main/resources/schema.sql` and `src/main/resources/data.sql`.
 - **API Documentation**: Once the application is running, the Swagger UI is available at `http://localhost:8080/swagger-ui.html`.
+
+### Running with Docker
+
+The easiest way to run the application is using Docker Compose:
+
+```bash
+# Build and start the application
+docker compose up --build
+
+# Run in detached mode (background)
+docker compose up --build -d
+
+# View logs
+docker compose logs -f
+
+# Stop the application
+docker compose down
+```
+
+Once running, access the application at:
+- **API Endpoint**: `http://localhost:8080/brand/{brandId}/product/{productId}/prices`
+- **Swagger UI**: `http://localhost:8080/swagger-ui.html`
+- **Health Check**: `http://localhost:8080/actuator/health`
+
+#### Example API Request
+
+```bash
+# Get price for brand 1, product 35455 at a specific date/time
+curl "http://localhost:8080/brand/1/product/35455/prices?applicationDate=2020-06-14T10:00:00"
+```
+
+#### Docker Commands Reference
+
+```bash
+# Build only (without starting)
+docker compose build
+
+# Rebuild without cache
+docker compose build --no-cache
+
+# Stop and remove containers, networks
+docker compose down
+
+# Stop and remove everything including volumes
+docker compose down -v
+```
 
 ### Testing Guidelines
 
@@ -50,4 +96,10 @@ For further reference, please consider the following sections:
 
 ### Docker Compose support
 
-This project contains a Docker Compose file named `compose.yaml`. However, no services were found. As of now, the application won't start! Please make sure to add at least one service in the `compose.yaml` file.
+This project includes full Docker support:
+
+- **Dockerfile**: Multi-stage build using Maven and Eclipse Temurin JDK 21.
+- **compose.yaml**: Docker Compose configuration with health checks.
+- **.dockerignore**: Optimized build context.
+
+To run the application in a container, simply execute `docker compose up --build`.
