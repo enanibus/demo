@@ -30,12 +30,6 @@ public class PriorityPriceService implements PriorityPriceUseCase {
   }
 
   private Price selectHighestPriorityPrice(List<Price> prices, PriceRequestDTO request) {
-    if (prices.isEmpty()) {
-      throw new ResourceNotFoundException(
-          String.format("Price not found for brandId=%d, productId=%d, applicationDate=%s",
-              request.brandId(), request.productId(), request.applicationDate()));
-    }
-
     return prices.stream()
         .max(Comparator.comparingInt(price -> price.rate().priority()))
         .orElseThrow(() -> new ResourceNotFoundException(
